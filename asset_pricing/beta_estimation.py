@@ -52,7 +52,7 @@ class BetaEstimator:
         """
         from bcb import sgs
 
-        print(f"Fetching SELIC rate from BCB...")
+        print("Fetching SELIC rate from BCB...")
 
         # BCB Series 11 (daily over-SELIC rate)
         # Returns annual percentage rate
@@ -68,7 +68,7 @@ class BetaEstimator:
 
         return selic_daily
 
-    def calculate_returns(self, prices, frequency="daily", log_returns=True):
+    def calculate_returns(self, prices, frequency="weekly", log_returns=True):
         """
         Calculate returns from price series.
 
@@ -109,7 +109,7 @@ class BetaEstimator:
         self,
         etf_ticker,
         etf_data,
-        frequency="daily",
+        frequency="weekly",
         use_robust_se=True,
         outlier_method="winsorize",
     ):
@@ -186,6 +186,7 @@ class BetaEstimator:
         alpha_ci_lower = conf_int.loc["const", 0]
         alpha_ci_upper = conf_int.loc["const", 1]
 
+        # XXX check trading weeks per year
         annualization_factor = 252 if frequency == "daily" else 52
 
         result = {
@@ -264,7 +265,8 @@ class BetaEstimator:
 
         return df
 
-    def estimate_rolling_beta(self, etf_ticker, window=252, min_periods=None):
+    # TODO window depends on previous frequency choice
+    def estimate_rolling_beta(self, etf_ticker, window=52, min_periods=None):
         """
         Estimate rolling beta over time using a sliding window.
 
@@ -275,7 +277,7 @@ class BetaEstimator:
         etf_ticker : str
             ETF ticker symbol
         window : int
-            Rolling window size in days (default 252 = 1 trading year)
+            Rolling window size in weeks (default 52 weeks = 1 trading year)
         min_periods : int
             Minimum observations required (default = window)
 
@@ -493,7 +495,7 @@ if __name__ == "__main__":
     ]
 
     end_date = datetime.now().strftime("%Y-%m-%d")
-    start_date = (datetime.now() - timedelta(days=730)).strftime("%Y-%m-%d")
+    start_date = (datetime.now() - timedelta(days=1825)).strftime("%Y-%m-%d")
 
     print("=" * 70)
     print("COMPREHENSIVE CAPM BETA ESTIMATION")
@@ -513,9 +515,9 @@ if __name__ == "__main__":
         result = estimator.estimate_beta(
             ticker,
             data,
-            frequency="daily",
-            use_robust_se=True,
-            outlier_method="winsorize",
+            frequency="weekly",
+            use_robust_se=False,
+            outlier_method="",
         )
 
         if result:
@@ -540,11 +542,11 @@ if __name__ == "__main__":
         print(summary.to_string(index=False))
 
     print("\n" + "=" * 70)
-    print("ROLLING BETA ESTIMATION (252-day window)")
+    print("ROLLING BETA ESTIMATION (52-week window)")
     print("=" * 70)
     for ticker in etfs:
         if ticker in estimator.results:
-            rolling = estimator.estimate_rolling_beta(ticker, window=252)
+            rolling = estimator.estimate_rolling_beta(ticker)
             if rolling is not None:
                 print(f"{ticker}: {len(rolling)} periods calculated")
 
