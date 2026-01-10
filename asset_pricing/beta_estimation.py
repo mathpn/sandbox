@@ -483,6 +483,8 @@ if __name__ == "__main__":
     etfs = [
         "^BVSP",  # Sanity check - should have beta ≈ 1.0
         "BOVA11.SA",
+        "BOVX11.SA",
+        "IBOB11.SA",
         "SMAL11.SA",
         "IVVB11.SA",
         "DIVO11.SA",
