@@ -62,10 +62,6 @@ def calculate_returns(prices):
 
 
 def calculate_selic_daily_returns(selic_daily_pct):
-    """
-    Convert SELIC daily rates (in % per day) to daily returns.
-    BCB provides SELIC as % per day, so we divide by 100.
-    """
     # SELIC comes as % per day, convert to decimal
     selic_returns = selic_daily_pct["selic"] / 100
     return selic_returns
@@ -74,14 +70,53 @@ def calculate_selic_daily_returns(selic_daily_pct):
 # %%
 
 
-def plot_cumulative_returns(returns_dict):
-    """Plot total cumulative returns using compound returns formula."""
+def returns_to_price_index(returns, initial_value=100):
+    """Convert a return series to a synthetic price index."""
+    return initial_value * (1 + returns).cumprod()
+
+
+def calculate_rolling_returns_calendar_days(prices, window_days):
+    """
+    Calculate rolling returns based on calendar days.
+
+    For each date t, calculates: (price[t] / price[t - window_days]) - 1
+    where window_days is in calendar time. Uses the closest available trading
+    day at or before the lookback date.
+    """
+    if isinstance(prices, pd.DataFrame):
+        prices = prices.squeeze()
+
+    df = pd.DataFrame({"price": prices})
+
+    df["lookback_date"] = pd.to_datetime(df.index) - pd.Timedelta(days=window_days)
+
+    df_hist = pd.DataFrame({"price_past": prices})
+    df_hist["date"] = df_hist.index
+
+    # For each lookback date, find the price at the closest available trading day
+    # direction='backward' means we take the last available price at or before the lookback date
+    merged = pd.merge_asof(
+        df.reset_index(),
+        df_hist,
+        left_on="lookback_date",
+        right_on="date",
+        direction="backward",
+    )
+
+    rolling_returns = (merged["price"] / merged["price_past"]) - 1
+    rolling_returns.index = prices.index
+
+    return rolling_returns
+
+
+# %%
+
+
+def plot_cumulative_returns(prices_dict):
     plt.figure(figsize=(12, 6))
 
-    for label, returns in returns_dict.items():
-        # Calculate cumulative returns: (1 + r1) * (1 + r2) * ... - 1
-        cumulative_returns = (1 + returns).cumprod() - 1
-        # Convert to percentage for display
+    for label, prices in prices_dict.items():
+        cumulative_returns = (prices / prices.iloc[0]) - 1
         plt.plot(cumulative_returns.index, cumulative_returns * 100, label=label)
 
     plt.title("Total Cumulative Returns Comparison")
@@ -104,42 +139,37 @@ selic_data = fetch_risk_free_rate(start_date, end_date)
 
 # %%
 
-bvsp_returns = calculate_returns(bvsp_prices)
+# Convert SELIC returns to a synthetic price index
 selic_returns = calculate_selic_daily_returns(selic_data)
+selic_prices = returns_to_price_index(selic_returns, initial_value=100)
 
 # %%
 
-# Align the two return series
-common_index = bvsp_returns.index.intersection(selic_returns.index)
-bvsp_returns_aligned = bvsp_returns.loc[common_index]
-selic_returns_aligned = selic_returns.loc[common_index]
+common_index = bvsp_prices.index.intersection(selic_prices.index)
+bvsp_prices_aligned = bvsp_prices.loc[common_index]
+selic_prices_aligned = selic_prices.loc[common_index]
 
 # %%
 
-# Print total returns for verification
-total_selic = (1 + selic_returns_aligned).prod() - 1
-total_bvsp = ((1 + bvsp_returns_aligned).prod() - 1).iloc[0]
+total_selic = (selic_prices_aligned.iloc[-1] / selic_prices_aligned.iloc[0]) - 1
+total_bvsp = ((bvsp_prices_aligned.iloc[-1] / bvsp_prices_aligned.iloc[0]) - 1).iloc[0]
 print(f"Total SELIC return: {total_selic * 100:.2f}%")
 print(f"Total BVSP return: {total_bvsp * 100:.2f}%")
 print(f"Period: {common_index[0].date()} to {common_index[-1].date()}")
 
 # %%
 
-returns_dict = {"^BVSP": bvsp_returns_aligned, "SELIC": selic_returns_aligned}
-plot_cumulative_returns(returns_dict)
+prices_dict = {"^BVSP": bvsp_prices_aligned, "SELIC": selic_prices_aligned}
+plot_cumulative_returns(prices_dict)
 
 # %%
 
 
-def plot_rolling_returns(returns_dict, window_days=21):
+def plot_rolling_returns(prices_dict, window_days=21):
     plt.figure(figsize=(12, 6))
 
-    for label, returns in returns_dict.items():
-        # Calculate rolling monthly returns using compound formula
-        rolling_returns = (1 + returns).rolling(window=window_days).apply(
-            lambda x: x.prod(), raw=True
-        ) - 1
-        # Convert to percentage for display
+    for label, prices in prices_dict.items():
+        rolling_returns = calculate_rolling_returns_calendar_days(prices, window_days)
         plt.plot(rolling_returns.index, rolling_returns * 100, label=label)
 
     plt.title(f"Rolling {window_days}-Day Returns Comparison")
@@ -152,6 +182,6 @@ def plot_rolling_returns(returns_dict, window_days=21):
 
 # %%
 
-plot_rolling_returns(returns_dict, window_days=365)
+plot_rolling_returns(prices_dict, window_days=365)
 
 # %%
