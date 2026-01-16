@@ -642,17 +642,50 @@ def main():
     etfs = [
         "^BVSP",  # Sanity check - should have beta ≈ 1.0
         "BOVA11.SA",
-        "BOVX11.SA",
-        "IBOB11.SA",
-        "SMAL11.SA",
         "IVVB11.SA",
-        "DIVO11.SA",
-        "GOLD11.SA",
         "HASH11.SA",
+        "BOVV11.SA",
+        "SPXR11.SA",
+        "B5P211.SA",
+        "IMAB11.SA",
+        "GOLD11.SA",
+        "BBOV11.SA",
+        "BITH11.SA",
+        "LLFT11.SA",
+        "SMAL11.SA",
+        "BOVB11.SA",
+        "TECK11.SA",
+        "LFTS11.SA",
+        "LFTB11.SA",
+        "SPXI11.SA",
+        "DIVO11.SA",
+        "PIBB11.SA",
+        "IMBB11.SA",
+        "BITI11.SA",
+        "B5MB11.SA",
+        "NASD11.SA",
+        "QBTC11.SA",
+        "BOVX11.SA",
+        "IRFM11.SA",
+        "PACG11.SA",
+        "WRLD11.SA",
+        "IBOB11.SA",
+        "IB5M11.SA",
+        "USAL11.SA",
+        "PHIP11.SA",
+        "ETHE11.SA",
+        "MARG11.SA",
+        "DEBB11.SA",
+        "BOL511.SA",
+        "XRPH11.SA",
+        "DOLB11.SA",
+        "UTEC11.SA",
+        "COIN11.SA",
+        "SPYI11.SA",
     ]
 
     end_date = datetime.now()
-    start_date = end_date - timedelta(days=365 * 5)
+    start_date = end_date - timedelta(days=365 * 10)
 
     print("=" * 70)
     print("COMPREHENSIVE CAPM BETA ESTIMATION")
