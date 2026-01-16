@@ -13,12 +13,6 @@ def calculate_returns(prices):
     return returns
 
 
-def calculate_selic_daily_returns(selic_daily_pct):
-    # SELIC comes as % per day, convert to decimal
-    selic_returns = selic_daily_pct["selic"] / 100
-    return selic_returns
-
-
 # %%
 
 
@@ -91,9 +85,7 @@ selic_data = fetch_br_risk_free_rate(start_date, end_date)
 
 # %%
 
-# Convert SELIC returns to a synthetic price index
-selic_returns = calculate_selic_daily_returns(selic_data)
-selic_prices = returns_to_price_index(selic_returns, initial_value=100)
+selic_prices = returns_to_price_index(selic_data, initial_value=100)
 
 # %%
 

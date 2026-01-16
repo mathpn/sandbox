@@ -42,6 +42,8 @@ def fetch_br_risk_free_rate(start_date, end_date):
         current_start = chunk_end + timedelta(days=1)
 
     selic_data = pd.concat(all_data)
+    # SELIC data comes as % per day, convert to decimal
+    selic_data = selic_data['selic'] / 100
     print(f"Successfully fetched {len(selic_data)} data points")
 
     return selic_data
