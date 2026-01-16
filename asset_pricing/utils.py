@@ -25,6 +25,8 @@ def fetch_br_risk_free_rate(start_date, end_date):
 
     if total_days <= max_days_per_request:
         selic_data = sgs.get({"selic": 11}, start=start_date, end=end_date)
+        # SELIC data comes as % per day, convert to decimal
+        selic_data['selic'] = selic_data['selic'] / 100
         return selic_data
 
     print(f"Request spans {total_days / 365:.1f} years. Splitting into chunks...")
@@ -37,13 +39,12 @@ def fetch_br_risk_free_rate(start_date, end_date):
 
         print(f"  Fetching from {current_start.date()} to {chunk_end.date()}...")
         chunk_data = sgs.get({"selic": 11}, start=current_start, end=chunk_end)
+        chunk_data['selic'] = chunk_data['selic'] / 100
         all_data.append(chunk_data)
 
         current_start = chunk_end + timedelta(days=1)
 
     selic_data = pd.concat(all_data)
-    # SELIC data comes as % per day, convert to decimal
-    selic_data = selic_data['selic'] / 100
     print(f"Successfully fetched {len(selic_data)} data points")
 
     return selic_data
