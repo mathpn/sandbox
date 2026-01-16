@@ -403,6 +403,190 @@ def plot_rolling_beta(rolling_data, static_beta, etf_ticker):
     plt.show()
 
 
+def plot_beta_comparison(results, figsize=(12, 12)):
+    """
+    Create a horizontal confidence interval plot comparing betas across multiple ETFs.
+
+    Parameters:
+    -----------
+    results : list of dict
+        List of beta estimation results from estimate_beta
+    figsize : tuple
+        Figure size (width, height)
+    """
+    if not results:
+        print("No results to display")
+        return None
+
+    # Sort results by beta (descending - highest first)
+    sorted_results = sorted(results, key=lambda x: x["beta"], reverse=True)
+    # Remove index from results
+    sorted_results = [
+        r for r in sorted_results if not r.get("ticker", "").startswith("^")
+    ]
+
+    # Extract data
+    tickers = [r["ticker"] for r in sorted_results]
+    betas = [r["beta"] for r in sorted_results]
+    beta_ci_lower = [r["beta_ci_lower"] for r in sorted_results]
+    beta_ci_upper = [r["beta_ci_upper"] for r in sorted_results]
+    observations = [r["observations"] for r in sorted_results]
+
+    # Create figure with white background
+    fig, ax = plt.subplots(figsize=figsize, facecolor="white")
+    fig.set_facecolor("#FAFAFA")  # Very light gray background
+    ax.set_facecolor("#FAFAFA")
+
+    # Y-axis positions for each ETF (reversed so highest beta is on top)
+    y_pos = np.arange(len(tickers))[::-1]
+
+    # Refined color palette
+    ci_color = "#6BA3C5"  # Muted blue for CI lines
+    point_color = "#2C5F7D"  # Deep blue for point estimate
+    market_color = "#D67873"  # Muted coral for market line
+
+    # Main plot: Beta confidence intervals
+    for i, (ticker, beta, ci_low, ci_high) in enumerate(
+        zip(tickers, betas, beta_ci_lower, beta_ci_upper)
+    ):
+        y = y_pos[i]
+
+        # Draw horizontal line from CI lower to upper
+        ax.plot(
+            [ci_low, ci_high],
+            [y, y],
+            "-",
+            linewidth=3,
+            color=ci_color,
+            alpha=0.7,
+            solid_capstyle="round",
+        )
+
+        # Draw markers at CI endpoints
+        ax.plot(
+            [ci_low, ci_high],
+            [y, y],
+            "o",
+            markersize=5.5,
+            color=ci_color,
+            alpha=0.7,
+            markeredgewidth=0,
+        )
+
+        # Highlight the point estimate with a different marker
+        ax.plot(
+            beta,
+            y,
+            "o",
+            markersize=8,
+            color=point_color,
+            zorder=5,
+            markeredgewidth=0.5,
+            markeredgecolor="white",
+        )
+
+    # Add reference line at beta = 1
+    ax.axvline(
+        x=1.0,
+        color=market_color,
+        linestyle="--",
+        linewidth=2.5,
+        alpha=0.7,
+        label="β = 1.0 (Market)",
+        zorder=1,
+    )
+
+    # Formatting main plot
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(tickers, fontsize=11, color="#2C3E50")
+    ax.set_xlabel("Beta", fontsize=13, color="#2C3E50", fontweight="500")
+    ax.set_title(
+        "Beta Estimates with 95% Confidence Intervals",
+        fontsize=15,
+        pad=20,
+        color="#2C3E50",
+        fontweight="600",
+    )
+    ax.grid(True, alpha=0.15, axis="x", linestyle="-", linewidth=0.8, color="#BDC3C7")
+    ax.legend(
+        loc="upper left",
+        fontsize=10,
+        framealpha=0.95,
+        edgecolor="#BDC3C7",
+        fancybox=True,
+    )
+
+    # Style spines
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_color("#BDC3C7")
+    ax.spines["left"].set_linewidth(1.2)
+    ax.spines["bottom"].set_color("#BDC3C7")
+    ax.spines["bottom"].set_linewidth(1.2)
+
+    # Style ticks
+    ax.tick_params(colors="#7F8C8D", which="both", labelsize=10)
+
+    # Add observation counts as text on the right side
+    x_max = ax.get_xlim()[1]
+    x_offset = x_max + (x_max - ax.get_xlim()[0]) * 0.04
+
+    # Add subtle separator line
+    ax.axvline(
+        x=x_max + (x_max - ax.get_xlim()[0]) * 0.02,
+        color="#BDC3C7",
+        linestyle="-",
+        linewidth=1,
+        alpha=0.3,
+        zorder=0,
+    )
+
+    # Add column header with subtle background
+    header_y = y_pos[0] + 0.85
+    ax.text(
+        x_offset,
+        header_y,
+        "N obs",
+        fontsize=10,
+        fontweight="600",
+        ha="left",
+        va="bottom",
+        color="#2C3E50",
+    )
+
+    # Add observation counts with alternating subtle backgrounds
+    for i, (obs, y) in enumerate(zip(observations, y_pos)):
+        # Alternating row backgrounds
+        if i % 2 == 0:
+            ax.axhspan(
+                y - 0.4,
+                y + 0.4,
+                xmin=0.97,
+                xmax=1.0,
+                facecolor="#ECF0F1",
+                alpha=0.3,
+                zorder=0,
+            )
+
+        ax.text(
+            x_offset,
+            y,
+            f"{obs}",
+            va="center",
+            ha="left",
+            fontsize=10,
+            color="#34495E",
+            fontweight="500",
+        )
+
+    # Extend x-axis to make room for observation text
+    current_xlim = ax.get_xlim()
+    ax.set_xlim(current_xlim[0], current_xlim[1] * 1.18)
+
+    plt.tight_layout()
+    return fig
+
+
 def create_summary_table(results):
     """
     Create enhanced summary table with confidence intervals and significance.
@@ -544,6 +728,13 @@ def main():
     print("\n" + "=" * 70)
     print("GENERATING VISUALIZATIONS")
     print("=" * 70)
+
+    # Beta comparison plot
+    print("Plotting beta comparison...")
+    plot_beta_comparison(results)
+    plt.savefig("beta_comparison.png", dpi=300)
+    plt.show()
+
     for result in results:
         ticker = result["ticker"]
         print(f"Plotting {ticker}...")
