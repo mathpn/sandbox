@@ -497,6 +497,8 @@ def plot_beta_comparison(results, figsize=(12, 12)):
     )
 
     # Formatting main plot
+    x_max = max(beta_ci_upper) + 0.1
+    ax.set_xlim(-0.5, x_max)
     ax.set_yticks(y_pos)
     ax.set_yticklabels(tickers, fontsize=11, color="#2C3E50")
     ax.set_xlabel("Beta", fontsize=13, color="#2C3E50", fontweight="500")
